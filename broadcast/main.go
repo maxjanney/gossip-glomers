@@ -9,7 +9,6 @@ import (
 )
 
 type State struct {
-	neighbors []string
 	messages map[int]struct{}
 }
 
