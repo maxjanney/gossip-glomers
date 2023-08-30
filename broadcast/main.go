@@ -14,7 +14,7 @@ type State struct {
 
 func main() {
 	state := State{
-		messages:  make(map[int]struct{}, 100),
+		messages: make(map[int]struct{}, 100),
 	}
 
 	node := maelstrom.NewNode()
@@ -27,7 +27,7 @@ func main() {
 
 		m := int(body["message"].(float64))
 		if _, ok := state.messages[m]; ok {
-			return nil 
+			return nil
 		}
 		state.messages[m] = struct{}{}
 
@@ -41,7 +41,7 @@ func main() {
 			}
 			sendBody := map[string]any{"type": "broadcast", "message": m}
 			if err := node.Send(n, sendBody); err != nil {
-				return err 
+				return err
 			}
 		}
 
