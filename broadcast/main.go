@@ -2,15 +2,32 @@ package main
 
 import (
 	"encoding/json"
-	"log"
-
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
+	"log"
 )
+
+type Request struct {
+	node string
+	msg  int
+}
 
 func main() {
 	neighbors := make([]string, 0, 5)
 	state := make(map[int]struct{})
+	retry := make(chan Request)
 	node := maelstrom.NewNode()
+
+	go func() {
+		for {
+			req := <-retry
+			for {
+				body := map[string]any{"type": "gossip", "message": req.msg}
+				if err := node.Send(req.node, body); err == nil {
+					break
+				}
+			}
+		}
+	}()
 
 	node.Handle("broadcast", func(msg maelstrom.Message) error {
 		var body map[string]any
@@ -26,7 +43,8 @@ func main() {
 		for _, n := range neighbors {
 			gossipBody := map[string]any{"type": "gossip", "message": m}
 			if err := node.Send(n, gossipBody); err != nil {
-				return err
+				retry <- Request{node: n, msg: m}
+				// return err
 			}
 		}
 		return node.Reply(msg, respBody)
@@ -70,7 +88,8 @@ func main() {
 			}
 			gossipBody := map[string]any{"type": "gossip", "message": m}
 			if err := node.Send(n, gossipBody); err != nil {
-				return err
+				retry <- Request{node: n, msg: m}
+				// return err
 			}
 		}
 		return nil
