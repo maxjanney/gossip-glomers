@@ -11,6 +11,7 @@ import (
 type State struct {
 	messages map[int]struct{}
 	known    map[string]map[int]struct{}
+	neighbors []string 
 }
 
 // func init() {
@@ -30,10 +31,10 @@ type State struct {
 // }
 
 func main() {
-
 	state := State{
 		messages: make(map[int]struct{}, 150),
 		known:    make(map[string]map[int]struct{}),
+		neighbors: make([]string, 0),
 	}
 
 	node := maelstrom.NewNode()
@@ -108,8 +109,8 @@ func main() {
 		}
 		state.messages[m] = struct{}{}
 
-		for _, n := range node.NodeIDs() {
-			if n == node.ID() || n == msg.Src {
+		for _, n := range state.neighbors {
+			if n == msg.Src {
 				continue 
 			}
 
@@ -249,7 +250,17 @@ func main() {
 	})
 
 	node.Handle("topology", func(msg maelstrom.Message) error {
-		return node.Reply(msg, maelstrom.MessageBody{Type: "topology_ok"})
+		var body map[string]any
+		if err := json.Unmarshal(msg.Body, &body); err != nil {
+			return err
+		}
+
+		topology := body["topology"].(map[string]any)
+		neighbors := topology[node.ID()].([]any)
+		for _, n := range neighbors {
+			state.neighbors = append(state.neighbors, n.(string))
+		}
+		return node.Reply(msg, map[string]any{"type": "topology_ok"})
 	})
 
 	node.Handle("broadcast_ok", func(msg maelstrom.Message) error {
