@@ -77,15 +77,6 @@ func main() {
 	})
 
 	node.Handle("topology", func(msg maelstrom.Message) error {
-		// var body map[string]any
-		// if err := json.Unmarshal(msg.Body, &body); err != nil {
-		// 	return err
-		// }
-		// topology := body["topology"].(map[string]any)
-		// nodes := topology[node.ID()].([]any)
-		// for _, n := range nodes {
-		// 	neighbors = append(neighbors, n.(string))
-		// }
 		return node.Reply(msg, map[string]any{"type": "topology_ok"})
 	})
 
