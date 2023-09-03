@@ -57,12 +57,12 @@ func main() {
 					if body["type"] == "broadcast_ok" {
 						delete(unack, n)
 					}
-					return nil 
+					return nil
 				})
 			}
 			time.Sleep(time.Second)
 		}
-		return nil 
+		return nil
 	})
 
 	node.Handle("read", func(msg maelstrom.Message) error {
@@ -90,7 +90,7 @@ func main() {
 	})
 
 	node.Handle("broadcast_ok", func(msg maelstrom.Message) error {
-		return nil 
+		return nil
 	})
 
 	if err := node.Run(); err != nil {
