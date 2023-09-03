@@ -90,7 +90,7 @@ func main() {
 }
 
 func createUnack(neighbors []string, src string) map[string]struct{} {
-	unack := make(map[string]struct{}, 0, len(neighbors))
+	unack := make(map[string]struct{}, len(neighbors))
 	for _, n := range neighbors {
 		if n == src {
 			continue
