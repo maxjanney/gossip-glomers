@@ -14,6 +14,7 @@ func main() {
 	c := make(chan struct{})
 	ticker := time.NewTicker(600 * time.Millisecond)
 	neighbors := make([]string, 0, 5)
+	known := make(map[string]map[int]struct{})
 	state := make(map[int]struct{})
 	node := maelstrom.NewNode()
 
@@ -28,6 +29,9 @@ func main() {
 					mu.Lock()
 					messages := make([]int, 0, len(state))
 					for m := range state {
+						if _, ok := known[n][m]; ok {
+							continue
+						}
 						messages = append(messages, m)
 					}
 					mu.Unlock()
@@ -43,6 +47,7 @@ func main() {
 			if n == node.ID() {
 				continue
 			}
+			known[n] = make(map[int]struct{})
 			neighbors = append(neighbors, n)
 		}
 		return nil
@@ -71,10 +76,11 @@ func main() {
 		if err := json.Unmarshal(msg.Body, &body); err != nil {
 			return err
 		}
-		messages := body["messages"].([]any)
 		mu.Lock()
+		messages := body["messages"].([]any)
 		for _, m := range messages {
 			i := int(m.(float64))
+			known[msg.Src][i] = struct{}{}
 			if _, ok := state[i]; ok {
 				continue 
 			}
