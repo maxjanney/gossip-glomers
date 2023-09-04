@@ -9,13 +9,9 @@ import (
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
 )
 
-type Request struct {
-	node string
-	msg  int
-}
-
 func main() {
 	var mu sync.Mutex
+	var ackMu sync.Mutex
 	neighbors := make([]string, 0, 5)
 	state := make(map[int]struct{})
 	node := maelstrom.NewNode()
@@ -27,7 +23,7 @@ func main() {
 			}
 			neighbors = append(neighbors, n)
 		}
-		return node.Reply(msg, map[string]any{"type": "init_ok"})
+		return nil
 	})
 
 	node.Handle("broadcast", func(msg maelstrom.Message) error {
@@ -45,6 +41,7 @@ func main() {
 		}
 		state[m] = struct{}{}
 		mu.Unlock()
+
 		unack := createUnack(neighbors, msg.Src)
 		for len(unack) > 0 {
 			for n := range unack {
@@ -54,9 +51,11 @@ func main() {
 					if err := json.Unmarshal(msg.Body, &body); err != nil {
 						return err
 					}
-					if body["type"] == "broadcast_ok" {
+					ackMu.Lock()
+					if _, ok := unack[n]; ok && body["type"] == "broadcast_ok" {
 						delete(unack, n)
 					}
+					ackMu.Unlock()
 					return nil
 				})
 			}
@@ -90,7 +89,7 @@ func main() {
 }
 
 func createUnack(neighbors []string, src string) map[string]struct{} {
-	unack := make(map[string]struct{}, len(neighbors))
+	unack := make(map[string]struct{})
 	for _, n := range neighbors {
 		if n == src {
 			continue
