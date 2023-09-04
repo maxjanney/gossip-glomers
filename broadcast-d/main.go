@@ -10,10 +10,9 @@ import (
 )
 
 func main() {
+	var mu sync.Mutex
 	c := make(chan struct{})
 	ticker := time.NewTicker(600 * time.Millisecond)
-	var mu sync.Mutex
-	// var ackMu sync.Mutex
 	neighbors := make([]string, 0, 5)
 	state := make(map[int]struct{})
 	node := maelstrom.NewNode()
@@ -64,26 +63,6 @@ func main() {
 		}
 		state[m] = struct{}{}
 		mu.Unlock()
-
-		// unack := createUnack(neighbors, msg.Src)
-		// for len(unack) > 0 {
-		// 	for n := range unack {
-		// 		rpcBody := map[string]any{"type": "broadcast", "message": m}
-		// 		node.RPC(n, rpcBody, func(msg maelstrom.Message) error {
-		// 			var body map[string]any
-		// 			if err := json.Unmarshal(msg.Body, &body); err != nil {
-		// 				return err
-		// 			}
-		// 			ackMu.Lock()
-		// 			if _, ok := unack[n]; ok && body["type"] == "broadcast_ok" {
-		// 				delete(unack, n)
-		// 			}
-		// 			ackMu.Unlock()
-		// 			return nil
-		// 		})
-		// 	}
-		// 	time.Sleep(time.Second)
-		// }
 		return nil
 	})
 
