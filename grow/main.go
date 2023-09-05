@@ -11,7 +11,7 @@ import (
 
 func main() {
 	node := maelstrom.NewNode()
-	neighbors := make([]string, 0, 5)
+	neighbors := make([]string, 0, 3)
 	kv := maelstrom.NewSeqKV(node)
 	done := make(chan struct{})
 	ticker := time.NewTicker(500 * time.Millisecond)
