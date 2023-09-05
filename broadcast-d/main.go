@@ -13,7 +13,7 @@ func main() {
 	var mu sync.Mutex
 	c := make(chan struct{})
 	ticker := time.NewTicker(600 * time.Millisecond)
-	neighbors := make([]string, 0, 5)
+	neighbors := make([]string, 0, 25)
 	known := make(map[string]map[int]struct{})
 	state := make(map[int]struct{})
 	node := maelstrom.NewNode()
@@ -62,10 +62,6 @@ func main() {
 		}
 		m := int(body["message"].(float64))
 		mu.Lock()
-		if _, ok := state[m]; ok {
-			mu.Unlock()
-			return nil
-		}
 		state[m] = struct{}{}
 		mu.Unlock()
 		return nil
