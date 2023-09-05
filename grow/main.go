@@ -10,8 +10,6 @@ import (
 )
 
 func main() {
-	// todo: periodically broadcast our count to neighbors?
-	// does this work? if so, does this also work with net. partitions?
 	node := maelstrom.NewNode()
 	neighbors := make([]string, 0, 5)
 	kv := maelstrom.NewSeqKV(node)
