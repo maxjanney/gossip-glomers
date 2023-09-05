@@ -15,8 +15,7 @@ func main() {
 	kv := maelstrom.NewSeqKV(node)
 
 	node.Handle("init", func(msg maelstrom.Message) error {
-		kv.Write(context.TODO(), node.ID(), 0)
-		return nil 
+		return kv.Write(context.TODO(), node.ID(), 0)
 	})
 
 	node.Handle("add", func(msg maelstrom.Message) error {
@@ -27,8 +26,7 @@ func main() {
 		}
 		delta := int(body["delta"].(float64))
 		count, _ := kv.ReadInt(context.TODO(), node.ID())
-		kv.Write(context.TODO(), node.ID(), count + delta)
-		return nil
+		return kv.Write(context.TODO(), node.ID(), count + delta)
 	})
 
 	node.Handle("read", func(msg maelstrom.Message) error {
