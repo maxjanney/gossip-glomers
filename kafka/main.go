@@ -88,7 +88,15 @@ func main() {
 		offsets := make(map[string]int)
 		for _, k := range keys {
 			key := k.(string)
-			c, _ := kv.ReadInt(context.Background(), "c"+key)
+			c, err := kv.ReadInt(context.Background(), "c"+key)
+			if err != nil {
+				rpcErr := err.(* maelstrom.RPCError)
+				if rpcErr.Code == maelstrom.KeyDoesNotExist {
+					continue 
+				} else {
+					return err 
+				}
+			}
 			offsets[key] = c
 		}
 		return node.Reply(msg, map[string]any{"type": "list_committed_offsets_ok", "offsets": offsets})
