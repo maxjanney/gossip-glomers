@@ -27,7 +27,7 @@ func main() {
 		} else {
 			offset++
 		}
-		for ; ; offset++ {
+		for {
 			if err := kv.CompareAndSwap(context.Background(), uKey, offset-1, offset, true); err == nil {
 				break
 			}
