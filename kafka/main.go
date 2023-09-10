@@ -1,20 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
-	"sync"
 
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
 )
 
 func main() {
-	var logMu sync.Mutex
-	var indxMu sync.Mutex
-	uncommitted := make(map[string]int)
-	committed := make(map[string]int)
-	logs := make(map[string][][2]int)
 	node := maelstrom.NewNode()
+	kv := maelstrom.NewLinKV(node)
 
 	node.Handle("send", func(msg maelstrom.Message) error {
 		var body map[string]any
@@ -23,11 +20,22 @@ func main() {
 		}
 		key := body["key"].(string)
 		val := int(body["msg"].(float64))
-		logMu.Lock()
-		offset := uncommitted[key]
-		uncommitted[key]++
-		logs[key] = append(logs[key], [2]int{offset, val})
-		logMu.Unlock()
+		uKey := "u" + key
+		offset, err := kv.ReadInt(context.Background(), uKey)
+		if err != nil {
+			offset = 0
+		} else {
+			offset++
+		}
+		for ; ; offset++ {
+			if err := kv.CompareAndSwap(context.Background(), uKey, offset-1, offset, true); err == nil {
+				break
+			}
+			offset++
+		}
+		if err := kv.Write(context.Background(), fmt.Sprintf("%d%s", offset, key), val); err != nil {
+			return err
+		}
 		return node.Reply(msg, map[string]any{"type": "send_ok", "offset": offset})
 	})
 
@@ -36,18 +44,23 @@ func main() {
 		if err := json.Unmarshal(msg.Body, &body); err != nil {
 			return err
 		}
-		msgs := make(map[string][][2]int)
 		offsets := body["offsets"].(map[string]any)
-		logMu.Lock()
+		msgs := make(map[string][][2]int)
 		for k, v := range offsets {
-			for _, l := range logs[k] {
-				val := int(v.(float64))
-				if l[0] >= val {
-					msgs[k] = append(msgs[k], l)
+			start := int(v.(float64))
+			for offset := start; ; offset++ {
+				val, err := kv.ReadInt(context.Background(), fmt.Sprintf("%d%s", offset, k))
+				if err != nil {
+					rpcErr := err.(*maelstrom.RPCError)
+					if rpcErr.Code == maelstrom.KeyDoesNotExist {
+						break
+					} else {
+						return err
+					}
 				}
+				msgs[k] = append(msgs[k], [2]int{offset, val})
 			}
 		}
-		logMu.Unlock()
 		replyBody := map[string]any{"type": "poll_ok", "msgs": msgs}
 		return node.Reply(msg, replyBody)
 	})
@@ -58,30 +71,26 @@ func main() {
 			return err
 		}
 		offsets := body["offsets"].(map[string]any)
-		indxMu.Lock()
 		for k, v := range offsets {
-			committed[k] = int(v.(float64))
+			if err := kv.Write(context.Background(), "c"+k, v); err != nil {
+				return err
+			}
 		}
-		indxMu.Unlock()
 		return node.Reply(msg, map[string]any{"type": "commit_offsets_ok"})
 	})
 
 	node.Handle("list_committed_offsets", func(msg maelstrom.Message) error {
 		var body map[string]any
 		if err := json.Unmarshal(msg.Body, &body); err != nil {
-				return err
+			return err
 		}
 		keys := body["keys"].([]any)
 		offsets := make(map[string]int)
-		indxMu.Lock()
 		for _, k := range keys {
 			key := k.(string)
-			if _, ok := committed[key]; !ok {
-				continue
-			}
-			offsets[key] = committed[key]
+			c, _ := kv.ReadInt(context.Background(), "c"+key)
+			offsets[key] = c
 		}
-		indxMu.Unlock()
 		return node.Reply(msg, map[string]any{"type": "list_committed_offsets_ok", "offsets": offsets})
 	})
 
