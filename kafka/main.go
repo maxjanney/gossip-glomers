@@ -56,11 +56,10 @@ func main() {
 				val, err := kv.ReadInt(context.Background(), fmt.Sprintf("%d_%s", offset, k))
 				if err != nil {
 					rpcErr := err.(*maelstrom.RPCError)
-					if rpcErr.Code == maelstrom.KeyDoesNotExist {
-						break
-					} else {
-						return err
+					if rpcErr.Code != maelstrom.KeyDoesNotExist {
+						return err 
 					}
+					break
 				}
 				msgs[k] = append(msgs[k], [2]int{offset, val})
 			}
@@ -95,11 +94,10 @@ func main() {
 			c, err := kv.ReadInt(context.Background(), "c"+key)
 			if err != nil {
 				rpcErr := err.(*maelstrom.RPCError)
-				if rpcErr.Code == maelstrom.KeyDoesNotExist {
-					continue
-				} else {
-					return err
+				if rpcErr.Code != maelstrom.KeyDoesNotExist {
+					return err 
 				}
+				continue
 			}
 			offsets[key] = c
 		}
