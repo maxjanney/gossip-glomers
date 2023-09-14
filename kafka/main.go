@@ -23,6 +23,10 @@ func main() {
 		uKey := "u" + key
 		offset, err := kv.ReadInt(context.Background(), uKey)
 		if err != nil {
+			rpcError := err.(* maelstrom.RPCError)
+			if rpcError.Code != maelstrom.KeyDoesNotExist {
+				return err 
+			}
 			offset = 0
 		} else {
 			offset++
@@ -33,7 +37,7 @@ func main() {
 			}
 			offset++
 		}
-		if err := kv.Write(context.Background(), fmt.Sprintf("%d%s", offset, key), val); err != nil {
+		if err := kv.Write(context.Background(), fmt.Sprintf("%d_%s", offset, key), val); err != nil {
 			return err
 		}
 		return node.Reply(msg, map[string]any{"type": "send_ok", "offset": offset})
@@ -49,7 +53,7 @@ func main() {
 		for k, v := range offsets {
 			start := int(v.(float64))
 			for offset := start; ; offset++ {
-				val, err := kv.ReadInt(context.Background(), fmt.Sprintf("%d%s", offset, k))
+				val, err := kv.ReadInt(context.Background(), fmt.Sprintf("%d_%s", offset, k))
 				if err != nil {
 					rpcErr := err.(*maelstrom.RPCError)
 					if rpcErr.Code == maelstrom.KeyDoesNotExist {
