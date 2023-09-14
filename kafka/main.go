@@ -23,9 +23,9 @@ func main() {
 		uKey := "u" + key
 		offset, err := kv.ReadInt(context.Background(), uKey)
 		if err != nil {
-			rpcError := err.(* maelstrom.RPCError)
+			rpcError := err.(*maelstrom.RPCError)
 			if rpcError.Code != maelstrom.KeyDoesNotExist {
-				return err 
+				return err
 			}
 			offset = 0
 		} else {
@@ -94,11 +94,11 @@ func main() {
 			key := k.(string)
 			c, err := kv.ReadInt(context.Background(), "c"+key)
 			if err != nil {
-				rpcErr := err.(* maelstrom.RPCError)
+				rpcErr := err.(*maelstrom.RPCError)
 				if rpcErr.Code == maelstrom.KeyDoesNotExist {
-					continue 
+					continue
 				} else {
-					return err 
+					return err
 				}
 			}
 			offsets[key] = c
